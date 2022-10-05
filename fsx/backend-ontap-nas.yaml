@@ -1,0 +1,14 @@
+apiVersion: trident.netapp.io/v1
+kind: TridentBackendConfig
+metadata:
+  name: backend-fsx-ontap-nas
+  namespace: trident
+spec:
+  version: 1
+  backendName: fsx-ontap
+  storageDriverName: ontap-nas
+  managementLIF: <<type your ManagementLIF.fsx.us-east-1.amazonaws.com>>
+  dataLIF: <<type your ManagementLIF.fsx.us-east-1.amazonaws.com>>
+  svm: SVM1
+  credentials:
+    name: backend-fsx-ontap-nas-secret
