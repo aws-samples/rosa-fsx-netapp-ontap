@@ -1,7 +1,8 @@
-# ROSA integration with Amazon FSx for NetApp ONTAP- Scalable persistent storage solution for stateful container applications.
+# ROSA integration with Amazon FSx for NetApp ONTAP- Scalable persistent storage solution for stateful container applications
 
 ## About the Setup
-The infrastructure setup consists of a Multi-AZ ROSA cluster with  EC2 worker nodes and a FSx ONTAP file system that spans across multiple availability zones. After infrastructure deployment, we will walk through how to leverage NetApp’s Trident Container Storage Interface (CSI) (https://netapp-trident.readthedocs.io/en/stable-v19.01/kubernetes/trident-csi.html)to create storage volume powered by FSxONTAP for a MySql database that runs on ROSA cluster. NetApp's Trident Container Storage Interface (CSI) driver provides a CSI interface that allows ROSA clusters to manage the lifecycle of Amazon FSx for NetApp ONTAP file systems.We will also demonstrate how to scale stateful kubernetes pods across multiple AZ to provide HA to your application. The test environment is created using AWS CLI, ROSA CLI and OC CLI tools along with AWS CloudFormation scripts. We will dive deep into how to deploy Trident CSI Operator into the ROSA cluster via Helm (https://helm.sh/), create the storage class, persistent volume claims so as to let the stateful application pod mount on the volume provided by FSxONTAP.
+
+The infrastructure setup consists of a Multi-AZ ROSA cluster with  EC2 worker nodes and a FSx ONTAP file system that spans across multiple availability zones. After infrastructure deployment, we will walk through how to leverage NetApp’s Trident Container Storage Interface (CSI) (<https://docs.netapp.com/us-en/trident/index.html>)to create storage volume powered by FSxONTAP for a MySql database that runs on ROSA cluster. NetApp's Trident Container Storage Interface (CSI) driver provides a CSI interface that allows ROSA clusters to manage the lifecycle of Amazon FSx for NetApp ONTAP file systems.We will also demonstrate how to scale stateful kubernetes pods across multiple AZ to provide HA to your application. The test environment is created using AWS CLI, ROSA CLI and OC CLI tools along with AWS CloudFormation scripts. We will dive deep into how to deploy Trident CSI Operator into the ROSA cluster via Helm (<https://helm.sh/>), create the storage class, persistent volume claims so as to let the stateful application pod mount on the volume provided by FSxONTAP.
 
 ## Architecture Diagram
 
@@ -9,7 +10,7 @@ The infrastructure setup consists of a Multi-AZ ROSA cluster with  EC2 worker no
 
 ## Project Structure
 
-```
+```txt
 .
 ├── fsx                                     # Holds CloudFormation templates for creating the network environment and FSxONTAP file system
 │   ├── FSxONTAP.yaml                       # CloudFormation template for creating FSxONTAP File System
@@ -42,22 +43,23 @@ You will need the following resources:
 * Access to Red Hat OpenShift web console
 * Note down the router ID of all the subnets of ROSA cluster from AWS console.
 
-
-
 # Getting started
 
-## Clone Git repo 
+## Clone Git repo
+
 As you clone the referenced GitHub repo, change directory as below:
-```
+
+```sh
 cd rosa-fsx-netapp-ontap/fsx
 ```
 
-
-
 ## Create an Amazon FSx for NetApp ONTAP file system
+
 Launch the Cloudformation stack as below to spin up an Amazon FSx for NetApp ONTAP file system. And you need to fill in the parameters and configuration accordingly. Make sure you choose those two private subnets of VPC as that of ROSA cluster.
 
-```
+Note that the `FSxONTAPRouteTable` parameter below is a list with the identifier of all route tables for the VPC, in the format `"routing_table_id_1\,routing_table_id_2\,routing_table_id_3\,..."`.
+
+```sh
 aws cloudformation create-stack \
   --stack-name FSXONTAP \
   --template-body file://./FSxONTAP.yaml \
@@ -66,7 +68,7 @@ aws cloudformation create-stack \
   ParameterKey=Subnet1ID,ParameterValue=[your_preferred_subnet1] \
   ParameterKey=Subnet2ID,ParameterValue=[your_preferred_subnet2] \
   ParameterKey=myVpc,ParameterValue=[your_VPC] \
-  ParameterKey=FSxONTAPRouteTable,ParameterValue=[your_routetable] \
+  ParameterKey=FSxONTAPRouteTable,ParameterValue=[your_routetable_ids] \
   ParameterKey=FileSystemName,ParameterValue=myFSxONTAP \
   ParameterKey=ThroughputCapacity,ParameterValue=512 \
   ParameterKey=FSxAllowedCIDR,ParameterValue=[your_allowed_CIDR] \
@@ -76,25 +78,42 @@ aws cloudformation create-stack \
 ```
 
 ## Create an ROSA cluster
+
 Verify the ROSA pre-requisities are met. Open terminal on your computer and execute below commands 
 
-```
-rosa create cluster --cluster-name my-rosa-cluster --sts --mode auto --yes --multi-az --region us-west-2 --version 4.9.23 --compute-nodes 3 --compute-machine-type m5.2xlarge --machine-cidr 10.0.0.0/16 --service-cidr 172.30.0.0/16 --pod-cidr 10.128.0.0/14 --host-prefix 23
+```sh
+rosa create cluster \
+    --cluster-name my-rosa-cluster \
+    --sts \
+    --mode auto \
+    --yes \
+    --multi-az \
+    --region us-west-2 \
+    --version 4.10.51 \
+    --compute-nodes 3 \
+    --compute-machine-type m5.2xlarge \
+    --machine-cidr 10.0.0.0/16 \
+    --service-cidr 172.30.0.0/16 \
+    --pod-cidr 10.128.0.0/14 \
+    --host-prefix 23
 ```
 
 ## Clean up
-```
+
+```sh
 rosa delete cluster --cluster <cluster-name>
 ```
 
+```sh
+aws cloudformation delete-stack \
+    --stack-name FSxONTAP \
+    --region <region-name>
 ```
-aws cloudformation delete-stack --stack-name FSxONTAP --region <region-name>
-```
 
+# Security
 
-
-# Security 
 See [CONTRIBUTING](https://github.com/aws-samples/mltiaz-fsxontap-eks/blob/main/CONTRIBUTING.md) for more information.
 
 # License
+
 This library is licensed under the MIT-0 License. See the LICENSE file.
