@@ -123,7 +123,8 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       VpcId: !Ref myVpc
-      GroupDescription: Security Group for FSx for Windows File Storage Access
+      GroupName: !Sub "${AWS::StackName}-fsx-ontap-sg"
+      GroupDescription: Security Group for FSx for NetApp ONTAP Storage
       SecurityGroupIngress:
         - IpProtocol: icmp
           FromPort: -1
@@ -264,7 +265,7 @@ Resources:
         FsxAdminPassword: !Ref FsxAdminPassword
       Tags:
         - Key: "Name"
-          Value: "OntapFileSystem_MAZ"
+          Value: !Ref FileSystemName
   SVM1:        
     Type: AWS::FSx::StorageVirtualMachine
     DependsOn: FSxONTAP
@@ -282,7 +283,7 @@ Resources:
       SecretString: !Sub '{"username":"fsxadmin","password":${FsxAdminPassword}}'
       Tags:
         - Key: "Name"
-          Value: "OntapFileSystem_MAZ"
+          Value: !Ref FileSystemName
   SMSVMAdminPassword:
     Type: AWS::SecretsManager::Secret
     Properties: 
@@ -291,12 +292,12 @@ Resources:
       SecretString: !Sub '{"username":"vsadmin","password": ${SvmAdminPassword}}'
       Tags:
         - Key: "Name"
-          Value: "OntapFileSystem_MAZ"
+          Value: !Ref FileSystemName
   ## Create IAM Role and Policy to be able to retrieve Secrets Manager
   SecretsManagerIAMPolicy:
     Type: AWS::IAM::ManagedPolicy
     Properties:
-      ManagedPolicyName: 'TridentIAMPolicy'
+      ManagedPolicyName: !Sub "${AWS::StackName}-TridentIAMPolicy"
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -306,7 +307,7 @@ Resources:
               - 'secretsmanager:DescribeSecret'
             Resource:
               - !Ref SMFsxAdminPassword
-              - !Ref SMSVMAdminPassword     
+              - !Ref SMSVMAdminPassword
 Outputs:
   FSxFileSystemID:
     Description: File System ID for FSx for NetAPP ONTAP
